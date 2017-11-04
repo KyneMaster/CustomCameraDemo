@@ -2,6 +2,9 @@ package com.anche.kyne.customcamerademo;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.os.Bundle;
@@ -14,10 +17,12 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback {
@@ -30,23 +35,16 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         @Override
         public void onPictureTaken(byte[] bytes, Camera camera) {
             if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-
                 String path = Environment.getExternalStorageDirectory().getAbsolutePath() + "/test/";
                 String filePath = path + "001.png";
-                File file = new File(filePath);
-                try {
-                    FileOutputStream fos = new FileOutputStream(file);
-                    fos.write(bytes);
-                    fos.close();
-                    Intent intent = new Intent(MainActivity.this, ResultActivity.class);
-                    intent.putExtra("path", filePath);
-                    startActivity(intent);
-                    MainActivity.this.finish();
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+                // 获得图片
+                Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                bitmap = ImageUtil.drawTextToRightBottom(MainActivity.this, bitmap, "时间: " + getTime(), 48, Color.RED, 75, 80);
+                saveFile(bitmap, filePath);
+                Intent intent = new Intent(MainActivity.this, ResultActivity.class);
+                intent.putExtra("path", filePath);
+                startActivity(intent);
+                MainActivity.this.finish();
             }
         }
     };
@@ -236,5 +234,26 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     @Override
     public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
         releaseCamera();
+    }
+
+    private String getTime() {
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd    HH:mm:ss     ");
+        Date curDate = new Date(System.currentTimeMillis());//获取当前时间       
+        String str = formatter.format(curDate);
+        return str;
+    }
+
+    public File saveFile(Bitmap bm, String fileName) {
+        try {
+            File myCaptureFile = new File(fileName);
+            BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(myCaptureFile));
+            bm.compress(Bitmap.CompressFormat.JPEG, 100, bos);
+            bos.flush();
+            bos.close();
+            return myCaptureFile;
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            return null;
+        }
     }
 }
